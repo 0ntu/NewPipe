@@ -32,6 +32,7 @@
             android:textSize="15sp"
             android:textStyle="bold"
             tools:ignore="RtlHardcoded" />
+
     </RelativeLayout>
 
     <org.schabi.newpipe.views.NewPipeTextView
@@ -49,11 +50,43 @@
         tools:text="@tools:sample/lorem[20]"
         tools:visibility="visible" />
 
+    <FrameLayout
+        android:id="@+id/playlistSearchContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/playlist_duplicate"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp">
+
+        <org.schabi.newpipe.views.NewPipeEditText
+            android:id="@+id/playlistSearchEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:background="@null"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="8dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:imeOptions="actionSearch|flagNoFullscreen"
+            android:inputType="textFilter|textNoSuggestions"
+            android:maxLines="1"
+            android:paddingStart="8dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp"
+            android:text="@string/search_playlists"
+            android:textSize="14sp" />
+
+    </FrameLayout>
+
     <View
         android:id="@+id/separator"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_below="@+id/playlist_duplicate"
+        android:layout_below="@id/playlistSearchContainer"
         android:layout_marginLeft="@dimen/video_item_search_padding"
         android:layout_marginRight="@dimen/video_item_search_padding"
         android:background="?attr/separator_color" />
