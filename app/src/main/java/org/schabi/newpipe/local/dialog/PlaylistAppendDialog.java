@@ -3,9 +3,12 @@ package org.schabi.newpipe.local.dialog;
 import static org.schabi.newpipe.database.playlist.model.PlaylistEntity.DEFAULT_THUMBNAIL_ID;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,6 +24,7 @@ import org.schabi.newpipe.database.stream.model.StreamEntity;
 import org.schabi.newpipe.local.LocalItemListAdapter;
 import org.schabi.newpipe.local.playlist.LocalPlaylistManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -29,6 +33,9 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable;
 public final class PlaylistAppendDialog extends PlaylistDialog {
     private static final String TAG = PlaylistAppendDialog.class.getCanonicalName();
 
+    // all playlists from the user
+    private List<PlaylistDuplicatesEntry> userPlaylists = new ArrayList<>();
+    private EditText playlistSearchText;
     private RecyclerView playlistRecyclerView;
     private LocalItemListAdapter playlistAdapter;
     private TextView playlistDuplicateIndicator;
@@ -38,7 +45,7 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
     /**
      * Create a new instance of {@link PlaylistAppendDialog}.
      *
-     * @param streamEntities    a list of {@link StreamEntity} to be added to playlists
+     * @param streamEntities a list of {@link StreamEntity} to be added to playlists
      * @return a new instance of {@link PlaylistAppendDialog}
      */
     public static PlaylistAppendDialog newInstance(final List<StreamEntity> streamEntities) {
@@ -73,14 +80,42 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
             }
         });
 
+        // Get playlist search text
+        playlistSearchText = view.findViewById(R.id.playlistSearchEditText);
         playlistRecyclerView = view.findViewById(R.id.playlist_list);
         playlistRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         playlistRecyclerView.setAdapter(playlistAdapter);
 
         playlistDuplicateIndicator = view.findViewById(R.id.playlist_duplicate);
 
+        if (playlistSearchText != null) {
+            playlistSearchText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void afterTextChanged(final Editable s) {
+                    final String text = s.toString();
+                    if (text.isEmpty()) { // if empty, show all
+                        playlistAdapter.clearStreamItemList();
+                        playlistAdapter.addItems(userPlaylists);
+                    } else { // if text, filter for text
+                        filterUserPlaylists(text);
+                    }
+                }
+
+                @Override
+                public void beforeTextChanged(final CharSequence s, final int start,
+                                              final int count, final int after) {
+                }
+
+                @Override
+                public void onTextChanged(final CharSequence s, final int start,
+                                          final int before, final int count) {
+                }
+            });
+        }
+
         final View newPlaylistButton = view.findViewById(R.id.newPlaylist);
         newPlaylistButton.setOnClickListener(ignored -> openCreatePlaylistDialog());
+
 
         playlistDisposables.add(playlistManager
                 .getPlaylistDuplicates(getStreamEntities().get(0).getUrl())
@@ -101,6 +136,8 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
         }
 
         playlistDisposables.clear();
+        userPlaylists.clear();
+        playlistSearchText = null;
         playlistRecyclerView = null;
         playlistAdapter = null;
     }
@@ -109,7 +146,9 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
     // Helper
     //////////////////////////////////////////////////////////////////////////*/
 
-    /** Display create playlist dialog. */
+    /**
+     * Display create playlist dialog.
+     */
     public void openCreatePlaylistDialog() {
         if (getStreamEntities() == null || !isAdded()) {
             return;
@@ -134,6 +173,7 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
             playlistRecyclerView.setVisibility(View.VISIBLE);
             playlistDuplicateIndicator.setVisibility(
                     anyPlaylistContainsDuplicates(playlists) ? View.VISIBLE : View.GONE);
+            userPlaylists = playlists;
         }
     }
 
@@ -173,5 +213,26 @@ public final class PlaylistAppendDialog extends PlaylistDialog {
                 }));
 
         requireDialog().dismiss();
+    }
+
+    private void filterUserPlaylists(final String text) {
+        // nothing to filter for
+        if (playlistAdapter == null || userPlaylists.isEmpty() || text.isEmpty()) {
+            return;
+        }
+
+        // filter playlists name for text
+        final List<PlaylistDuplicatesEntry> filteredPlaylists = new ArrayList<>();
+        for (final PlaylistDuplicatesEntry playlist : userPlaylists) {
+            if (playlist.getOrderingName() == null) {
+                continue;
+            }
+
+            if (playlist.getOrderingName().contains(text)) {
+                filteredPlaylists.add(playlist);
+            }
+        }
+        playlistAdapter.clearStreamItemList();
+        playlistAdapter.addItems(filteredPlaylists);
     }
 }
